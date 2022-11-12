@@ -1,0 +1,66 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width">
+    <script src="@CHARTJS_SOURCE@"></script>
+    <style>
+        *{padding:0; margin:0; background-color: transparent;}
+    </style>
+</head>
+<body onload="loadChart()">
+    <canvas id="chart" style="height: 100% !important;width: 100% !important; background-color: transparent;"></canvas>
+    <script>
+        var ctx = document.getElementById("chart").getContext("2d");
+        var config = @CONFIG_OPTIONS@;
+        var chart = null;
+        function loadChart() {
+            chart = new Chart(ctx, config);
+        }
+        function updateData(data) {
+            data = JSON.parse(data);
+            config.data.datasets.forEach(function(dataset, a) {
+                if(data[a]) {
+                    dataset.data = dataset.data.map(function(q, i) {
+                        return data[a][i];
+                    });
+                }
+            });
+            chart.update()
+        }
+        function update(data) {
+            data = JSON.parse(data)
+            chart.data = data
+/*
+            config.data.datasets.forEach(function(dataset, a) {
+                if(data.datasets[a]) {
+                    dataset.data = dataset.data.map(function(q, i) {
+                        return data.datasets[a].data[i]  
+                    })
+                }
+            })
+*/
+            chart.update()
+        }
+        function updateBackgroundColor(data) {
+            data = JSON.parse(data);
+            config.data.datasets.forEach(function(dataset, a) {
+                if(data[a]) {
+                    dataset.backgroundColor = dataset.backgroundColor.map(function(q, i) {
+                        return data[a][i];
+                    });
+                } 
+            });
+            chart.update();
+        }
+        function addDataset(data) {
+            data = JSON.parse(data);
+            config.data.datasets.push(data);
+            chart.update();
+        }
+        function removeDataset(index) {
+            var i = parseInt(index);
+            config.data.datasets.splice(i, 1);
+            chart.update();
+        }
+    </script>
+</body>
+</html>
