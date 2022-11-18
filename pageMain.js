@@ -201,9 +201,12 @@ class pageMainModel extends ModelBase {
 class pageMainView extends ViewBase {
     constructor(){
         super()
+        this.ItemInMeasurementsLay = []   // have named array to access element later if reorder needed
     }
     
     pageCreate = () => {
+        
+        
         var apb = MUI.CreateAppBar("Atorch power monitor", "menu", "power");
         apb.SetOnMenuTouch( ()=>{
             this.onMenuTouch()
@@ -218,189 +221,273 @@ class pageMainView extends ViewBase {
             contentLay.SetSize(1, -1)
             contentLay.SetPadding(0, apb.GetHeight(), 0, 0)
                 
-                this.meterChart = this.ChartCreate()
-                contentLay.AddChild( this.meterChart )
-                
-                //Voltage
-                var layVoltage = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layVoltage.SetPadding(0.02, 0.03)
-                layVoltage.AddChild( MUI.CreateTextH3("Voltage", 0.4, -1 ) )
-                this.meterValueVoltage = MUI.CreateTextH2( "", 0.3, -1 );
-                layVoltage.AddChild( this.meterValueVoltage )
-                layVoltage.AddChild( MUI.CreateTextH3( "V", -1, -1 ) )
-                contentLay.AddChild(layVoltage)
-                
-                //Current
-                var layCurrent = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layCurrent.SetPadding(0.02)
-                layCurrent.AddChild( MUI.CreateTextH3("Current", 0.4, -1 ) )
-                this.meterValueCurrent = MUI.CreateTextH2( "", 0.3, -1 )
-                layCurrent.AddChild( this.meterValueCurrent )
-                layCurrent.AddChild( MUI.CreateTextH3( "A", -1, -1 ) )
-                contentLay.AddChild(layCurrent)
-                
-                //Power
-                var layPower = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layPower.SetPadding(0.02)
-                layPower.AddChild( MUI.CreateTextH3("Power", 0.4, -1 ) )
-                this.meterValuePower = MUI.CreateTextH2( "", 0.3, -1 )
-                layPower.AddChild( this.meterValuePower )
-                layPower.AddChild( MUI.CreateTextH3( "W", -1, -1 ) )
-                contentLay.AddChild(layPower)
-                
-                //Capacity
-                var layCapacity = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layCapacity.SetPadding(0.02);
-                layCapacity.AddChild( MUI.CreateTextH3("Capacity", 0.4, -1 ) )
-                this.meterValueCapacity = MUI.CreateTextH2( "", 0.3, -1 )
-                layCapacity.AddChild( this.meterValueCapacity );
+            this.meterChart = this.ChartCreate()
+            contentLay.AddChild( this.meterChart )
+            
+            var MeasurementsLay = app.CreateLayout("Linear", "VCenter")
+            contentLay.AddChild(MeasurementsLay)
 
-                var capacityUnits = MUI.CreateTextH3( pageSettings.getSettingsValue("Use-kWh") ? "Ah" : "mAh", 0.2, -1 )
-                // var capacityUnits = MUI.CreateTextH3( false ? "Ah" : "mAh", 0.2, -1 )
-                event.on("Settings_Use-kWh_Changed", ()=>{
-                    capacityUnits.SetText( pageSettings.getSettingsValue("Use-kWh") ? "Ah" : "mAh" )
-                    // capacityUnits.SetText( false ? "Ah" : "mAh" )
-                })
-                layCapacity.AddChild( capacityUnits )
-                
-                var rst = app.CreateText( "[fa-repeat]", -1, -1, "FontAwesome" )
-                rst.SetTextSize(15)
-                rst.SetMargins(0, 0.02)
-                rst.SetOnTouchUp(()=>{
-                    this.controller.SendUartCommand("resetCapacity")
-                })
-                layCapacity.AddChild( rst )
-                contentLay.AddChild(layCapacity)
+            // draw measurements in order predefined in configuration
+            pageSettings.getSettingsValue("Measurements").forEach((el)=>{
+
+                //Voltage
+                if(el.key == "Vol"){
+                    var layVoltage = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if (!el.checked) layVoltage.Gone()
+                    layVoltage.SetPadding(0.02)
+                    layVoltage.AddChild( MUI.CreateTextH3("Voltage", 0.4, -1 ) )
+                    this.meterValueVoltage = MUI.CreateTextH2( "", 0.3, -1 );
+                    layVoltage.AddChild( this.meterValueVoltage )
+                    layVoltage.AddChild( MUI.CreateTextH3( "V", -1, -1 ) )
+                    MeasurementsLay.AddChild(layVoltage)
+                    this.ItemInMeasurementsLay["Vol"] = layVoltage
+                    return
+                }
+
+                //Current
+                if (el.key == "Cur"){
+                    var layCurrent = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layCurrent.Gone()
+                    layCurrent.SetPadding(0.02)
+                    layCurrent.AddChild( MUI.CreateTextH3("Current", 0.4, -1 ) )
+                    this.meterValueCurrent = MUI.CreateTextH2( "", 0.3, -1 )
+                    layCurrent.AddChild( this.meterValueCurrent )
+                    layCurrent.AddChild( MUI.CreateTextH3( "A", -1, -1 ) )
+                    MeasurementsLay.AddChild(layCurrent)
+                    this.ItemInMeasurementsLay["Cur"] = layCurrent
+                    return
+                }
+
+                //Power
+                if (el.key == "Pwr"){
+                    var layPower = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layPower.Gone()
+                    layPower.SetPadding(0.02)
+                    layPower.AddChild( MUI.CreateTextH3("Power", 0.4, -1 ) )
+                    this.meterValuePower = MUI.CreateTextH2( "", 0.3, -1 )
+                    layPower.AddChild( this.meterValuePower )
+                    layPower.AddChild( MUI.CreateTextH3( "W", -1, -1 ) )
+                    MeasurementsLay.AddChild(layPower)
+                    this.ItemInMeasurementsLay["Pwr"] = layPower
+                    return
+                }
+
+                //Capacity
+                if (el.key == "Cap"){
+                    var layCapacity = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layCapacity.Gone()
+                    layCapacity.SetPadding(0.02);
+                    layCapacity.AddChild( MUI.CreateTextH3("Capacity", 0.4, -1 ) )
+                    this.meterValueCapacity = MUI.CreateTextH2( "", 0.3, -1 )
+                    layCapacity.AddChild( this.meterValueCapacity );
+    
+                    var capacityUnits = MUI.CreateTextH3( pageSettings.getSettingsValue("Use-kWh") ? "Ah" : "mAh", 0.2, -1 )
+                    // var capacityUnits = MUI.CreateTextH3( false ? "Ah" : "mAh", 0.2, -1 )
+                    event.on("Settings_Use-kWh_Changed", ()=>{
+                        capacityUnits.SetText( pageSettings.getSettingsValue("Use-kWh") ? "Ah" : "mAh" )
+                        // capacityUnits.SetText( false ? "Ah" : "mAh" )
+                    })
+                    layCapacity.AddChild( capacityUnits )
+                    
+                    var rst = app.CreateText( "[fa-repeat]", -1, -1, "FontAwesome" )
+                    rst.SetTextSize(15)
+                    rst.SetMargins(0, 0.02)
+                    rst.SetOnTouchUp(()=>{
+                        this.controller.SendUartCommand("resetCapacity")
+                    })
+                    layCapacity.AddChild( rst )
+                    MeasurementsLay.AddChild(layCapacity)
+                    this.ItemInMeasurementsLay["Cap"] = layCapacity
+                    return
+                }
                 
                 //Energy
-                var layEnergy = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layEnergy.SetPadding(0.02)
-                layEnergy.AddChild( MUI.CreateTextH3("Energy", 0.4, -1 ) )
-                this.meterValueEnergy = MUI.CreateTextH2( "", 0.3, -1 )
-                layEnergy.AddChild( this.meterValueEnergy )
+                if (el.key == "Ene"){
+                    var layEnergy = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layEnergy.Gone()
+                    layEnergy.SetPadding(0.02)
+                    layEnergy.AddChild( MUI.CreateTextH3("Energy", 0.4, -1 ) )
+                    this.meterValueEnergy = MUI.CreateTextH2( "", 0.3, -1 )
+                    layEnergy.AddChild( this.meterValueEnergy )
+                    
+                    var energyUnits = MUI.CreateTextH3( pageSettings.getSettingsValue("Use-kWh") ? "kWh" : "Wh", 0.2, -1 )
+                    // var energyUnits = MUI.CreateTextH3( false ? "kWh" : "Wh", 0.2, -1 )
+                    event.on("Settings_Use-kWh_Changed", ()=>{
+                        energyUnits.SetText( pageSettings.getSettingsValue("Use-kWh") ? "kWh" : "Wh" )
+                        // energyUnits.SetText( false ? "kWh" : "Wh" )
+                    })
+                    layEnergy.AddChild( energyUnits )
+                    
+                    var rst = app.CreateText( "[fa-repeat]", -1, -1, "FontAwesome" )
+                    rst.SetTextSize(15)
+                    rst.SetMargins(0, 0.02)
+                    rst.SetOnTouchUp(()=>{
+                        this.controller.SendUartCommand("resetEnergy")
+                    })
+                    layEnergy.AddChild( rst )
+                    MeasurementsLay.AddChild(layEnergy)
+                    this.ItemInMeasurementsLay["Ene"] = layEnergy
+                    return
+                }
                 
-                var energyUnits = MUI.CreateTextH3( pageSettings.getSettingsValue("Use-kWh") ? "kWh" : "Wh", 0.2, -1 )
-                // var energyUnits = MUI.CreateTextH3( false ? "kWh" : "Wh", 0.2, -1 )
-                event.on("Settings_Use-kWh_Changed", ()=>{
-                    energyUnits.SetText( pageSettings.getSettingsValue("Use-kWh") ? "kWh" : "Wh" )
-                    // energyUnits.SetText( false ? "kWh" : "Wh" )
-                })
-                layEnergy.AddChild( energyUnits )
-                
-                var rst = app.CreateText( "[fa-repeat]", -1, -1, "FontAwesome" )
-                rst.SetTextSize(15)
-                rst.SetMargins(0, 0.02)
-                rst.SetOnTouchUp(()=>{
-                    this.controller.SendUartCommand("resetEnergy")
-                })
-                layEnergy.AddChild( rst )
-                contentLay.AddChild(layEnergy)
-                
-                //D Voltage
-                var layDVoltage = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layDVoltage.SetPadding(0.02)
-                layDVoltage.AddChild( MUI.CreateTextH3("Data lines volt.", 0.4, -1 ) )
-                this.meterValueDVoltage = MUI.CreateTextH2( "", 0.3, -1 )
-                layDVoltage.AddChild( this.meterValueDVoltage )
-                layDVoltage.AddChild( MUI.CreateTextH3( "V", -1, -1 ) )
-                contentLay.AddChild(layDVoltage)
+                //Data lines Voltage
+                if (el.key == "DMinPlus"){
+                    var layDVoltage = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layDVoltage.Gone()
+                    layDVoltage.SetPadding(0.02)
+                    layDVoltage.AddChild( MUI.CreateTextH3("Data lines volt.", 0.4, -1 ) )
+                    this.meterValueDVoltage = MUI.CreateTextH2( "", 0.3, -1 )
+                    layDVoltage.AddChild( this.meterValueDVoltage )
+                    layDVoltage.AddChild( MUI.CreateTextH3( "V", -1, -1 ) )
+                    MeasurementsLay.AddChild(layDVoltage)
+                    this.ItemInMeasurementsLay["DMinPlus"] = layDVoltage
+                    return
+                }
                 
                 //Price
-                var layPrice = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layPrice.SetPadding(0.02)
-                layPrice.AddChild( MUI.CreateTextH3("Price", 0.4, -1 ) )
-                this.meterValuePrice = MUI.CreateTextH2( "", 0.3, -1 )
-                layPrice.AddChild( this.meterValuePrice )
-                layPrice.AddChild( MUI.CreateTextH3( "¤/kWh", -1, -1 ) )
-                contentLay.AddChild(layPrice)
+                if (el.key == "Price"){
+                    var layPrice = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layPrice.Gone()
+                    layPrice.SetPadding(0.02)
+                    layPrice.AddChild( MUI.CreateTextH3("Price", 0.4, -1 ) )
+                    this.meterValuePrice = MUI.CreateTextH2( "", 0.3, -1 )
+                    layPrice.AddChild( this.meterValuePrice )
+                    layPrice.AddChild( MUI.CreateTextH3( "¤/kWh", -1, -1 ) )
+                    MeasurementsLay.AddChild(layPrice)
+                    this.ItemInMeasurementsLay["Price"] = layPrice
+                    return
+                }
                 
                 //Cost
-                var layCost = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layCost.SetPadding(0.02)
-                layCost.AddChild( MUI.CreateTextH3("Cost", 0.4, -1 ) )
-                this.meterValueCost = MUI.CreateTextH2( "", 0.3, -1 )
-                layCost.AddChild( this.meterValueCost )
-                layCost.AddChild( MUI.CreateTextH3( "¤", -1, -1 ) )
-                contentLay.AddChild(layCost)
+                if (el.key == "Cost"){
+                    var layCost = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layCost.Gone()
+                    layCost.SetPadding(0.02)
+                    layCost.AddChild( MUI.CreateTextH3("Cost", 0.4, -1 ) )
+                    this.meterValueCost = MUI.CreateTextH2( "", 0.3, -1 )
+                    layCost.AddChild( this.meterValueCost )
+                    layCost.AddChild( MUI.CreateTextH3( "¤", -1, -1 ) )
+                    MeasurementsLay.AddChild(layCost)
+                    this.ItemInMeasurementsLay["Cost"] = layCost
+                    return
+                }
                 
                 //Frequency
-                var layFreq = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layFreq.SetPadding(0.02)
-                layFreq.AddChild( MUI.CreateTextH3("Frequency", 0.4, -1 ) )
-                this.meterValueFreq = MUI.CreateTextH2( "", 0.3, -1 )
-                layFreq.AddChild( this.meterValueFreq )
-                layFreq.AddChild( MUI.CreateTextH3( "Hz", -1, -1 ) )
-                contentLay.AddChild(layFreq)
+                if (el.key == "Freq"){
+                    var layFreq = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layFreq.Gone()
+                    layFreq.SetPadding(0.02)
+                    layFreq.AddChild( MUI.CreateTextH3("Frequency", 0.4, -1 ) )
+                    this.meterValueFreq = MUI.CreateTextH2( "", 0.3, -1 )
+                    layFreq.AddChild( this.meterValueFreq )
+                    layFreq.AddChild( MUI.CreateTextH3( "Hz", -1, -1 ) )
+                    MeasurementsLay.AddChild(layFreq)
+                    this.ItemInMeasurementsLay["Freq"] = layFreq
+                    return
+                }
                 
                 //PowerFactor
-                var layPowFact = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layPowFact.SetPadding(0.02)
-                layPowFact.AddChild( MUI.CreateTextH3("Power Factor", 0.4, -1 ) )
-                this.meterValuePowFact = MUI.CreateTextH2( "", 0.3, -1 )
-                layPowFact.AddChild( this.meterValuePowFact )
-                layPowFact.AddChild( MUI.CreateTextH3( "", -1, -1 ) )
-                contentLay.AddChild(layPowFact)
+                if (el.key == "PowFact"){
+                    var layPowFact = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layPowFact.Gone()
+                    layPowFact.SetPadding(0.02)
+                    layPowFact.AddChild( MUI.CreateTextH3("Power Factor", 0.4, -1 ) )
+                    this.meterValuePowFact = MUI.CreateTextH2( "", 0.3, -1 )
+                    layPowFact.AddChild( this.meterValuePowFact )
+                    layPowFact.AddChild( MUI.CreateTextH3( "", -1, -1 ) )
+                    MeasurementsLay.AddChild(layPowFact)
+                    this.ItemInMeasurementsLay["PowFact"] = layPowFact
+                    return
+                }
                 
                 //Temperature
-                var layTemp = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layTemp.SetPadding(0.02)
-                layTemp.AddChild( MUI.CreateTextH3("Temperature", 0.4, -1 ) )
-                this.meterValueTemperature = MUI.CreateTextH2( "", 0.3, -1 )
-                layTemp.AddChild( this.meterValueTemperature )
-                layTemp.AddChild( MUI.CreateTextH3( "°C/°F", -1, -1 ) )
-                contentLay.AddChild(layTemp)
+                if (el.key == "Temp"){
+                    var layTemp = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layTemp.Gone()
+                    layTemp.SetPadding(0.02)
+                    layTemp.AddChild( MUI.CreateTextH3("Temperature", 0.4, -1 ) )
+                    this.meterValueTemperature = MUI.CreateTextH2( "", 0.3, -1 )
+                    layTemp.AddChild( this.meterValueTemperature )
+                    layTemp.AddChild( MUI.CreateTextH3( "°C/°F", -1, -1 ) )
+                    MeasurementsLay.AddChild(layTemp)
+                    this.ItemInMeasurementsLay["Temp"] = layTemp
+                    return
+                }
                 
                 //Time
-                var layTime = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
-                layTime.SetPadding(0.02)
-                layTime.AddChild( MUI.CreateTextH3("Time", 0.4, -1 ) )
-                this.meterValueTime = MUI.CreateTextH2( "", 0.5, -1 )
-                layTime.AddChild( this.meterValueTime )
-                var rst = app.CreateText( "[fa-repeat]", -1, -1, "FontAwesome" )
-                rst.SetTextSize(15)
-                rst.SetMargins(0, 0.02)
-                rst.SetOnTouchUp(()=>{
-                    this.controller.SendUartCommand("resetTime")
-                })
-                layTime.AddChild( rst )
-                contentLay.AddChild(layTime)
-                
-                //Buttons
-                var layButtons = app.CreateLayout( "Linear", "Horizontal,FillXY,VCenter" )
-                layButtons.SetPadding(0, 0.02)
-                var devBtnSetup = MUI.CreateButtonElegant("[fa-android] Setup")
-                    devBtnSetup.SetOnTouch( ()=>{
-                        this.controller.SendUartCommand("btnSetup")
+                if (el.key == "Time"){
+                    var layTime = app.CreateLayout( "Linear", "Left,Horizontal,FillXY" )
+                    if(!el.checked) layTime.Gone()
+                    layTime.SetPadding(0.02)
+                    layTime.AddChild( MUI.CreateTextH3("Time", 0.4, -1 ) )
+                    this.meterValueTime = MUI.CreateTextH2( "", 0.5, -1 )
+                    layTime.AddChild( this.meterValueTime )
+                    var rst = app.CreateText( "[fa-repeat]", -1, -1, "FontAwesome" )
+                    rst.SetTextSize(15)
+                    rst.SetMargins(0, 0.02)
+                    rst.SetOnTouchUp(()=>{
+                        this.controller.SendUartCommand("resetTime")
                     })
-                    layButtons.AddChild( devBtnSetup )
+                    layTime.AddChild( rst )
+                    MeasurementsLay.AddChild(layTime)
+                    this.ItemInMeasurementsLay["Time"] = layTime
+                    return
+                }
+            }) // foreach
+            
+            event.on("Settings_Measurements_Changed", () => {
+                // console.log("MeasurementsLay", MeasurementsLay)
+                // this.ItemInMeasurementsLay.forEach((itm) => {
+                //     MeasurementsLay.RemoveChild( itm )
+                // })
                 
-                var devBtnMinus = MUI.CreateButtonElegant("[fa-minus]")
-                    devBtnMinus.SetOnTouch( ()=>{
-                        this.controller.SendUartCommand("btnMinus")
-                    })
-                    layButtons.AddChild( devBtnMinus )
-                
-                var devBtnPlus = MUI.CreateButtonElegant("[fa-plus]")
-                    devBtnPlus.SetOnTouch( ()=>{
-                        this.controller.SendUartCommand("btnPlus")
-                    })
-                    layButtons.AddChild( devBtnPlus )
+                //make array copy and reverse to insert items into front of layout
+                pageSettings.getSettingsValue("Measurements").slice().reverse().forEach((el)=>{
+                    MeasurementsLay.RemoveChild( this.ItemInMeasurementsLay[el.key] )
                     
-                var devBtnEnter = MUI.CreateButtonElegant("[fa-android] Enter")
-                    devBtnEnter.SetOnTouch( ()=>{
-                        this.controller.SendUartCommand("btnEnter")
-                    })
-                    layButtons.AddChild( devBtnEnter )
+                    el.checked ? this.ItemInMeasurementsLay[el.key].Show() : this.ItemInMeasurementsLay[el.key].Gone()
+                    MeasurementsLay.AddChild(this.ItemInMeasurementsLay[el.key], 0)
+                })
                 
-                var devInfotext = app.CreateText("[fa-info]", -1, -1, "FontAwesome")
-                devInfotext.SetTextSize(15)
-                devInfotext.SetPadding(0.1)
-                devInfotext.SetOnTouchUp( ()=>{
-                    var text = "Using these buttons you can control device. You must have visual with the device to see what you are doing."
-                    app.Alert(text, "Information")
-                });
-                layButtons.AddChild( devInfotext )
-                contentLay.AddChild(layButtons)
+            })
+
+            
+            //Buttons
+            var layButtons = app.CreateLayout( "Linear", "Horizontal,FillXY,VCenter" )
+            layButtons.SetPadding(0, 0.02)
+            var devBtnSetup = MUI.CreateButtonElegant("[fa-android] Setup")
+                devBtnSetup.SetOnTouch( ()=>{
+                    this.controller.SendUartCommand("btnSetup")
+                })
+                layButtons.AddChild( devBtnSetup )
+            
+            var devBtnMinus = MUI.CreateButtonElegant("[fa-minus]")
+                devBtnMinus.SetOnTouch( ()=>{
+                    this.controller.SendUartCommand("btnMinus")
+                })
+                layButtons.AddChild( devBtnMinus )
+            
+            var devBtnPlus = MUI.CreateButtonElegant("[fa-plus]")
+                devBtnPlus.SetOnTouch( ()=>{
+                    this.controller.SendUartCommand("btnPlus")
+                })
+                layButtons.AddChild( devBtnPlus )
+                
+            var devBtnEnter = MUI.CreateButtonElegant("[fa-android] Enter")
+                devBtnEnter.SetOnTouch( ()=>{
+                    this.controller.SendUartCommand("btnEnter")
+                })
+                layButtons.AddChild( devBtnEnter )
+            
+            var devInfotext = app.CreateText("[fa-info]", -1, -1, "FontAwesome")
+            devInfotext.SetTextSize(15)
+            devInfotext.SetPadding(0.1)
+            devInfotext.SetOnTouchUp( ()=>{
+                var text = "Using these buttons you can control device. You must have visual with the device to see what you are doing."
+                app.Alert(text, "Information")
+            });
+            layButtons.AddChild( devInfotext )
+            contentLay.AddChild(layButtons)
                 
             scr.AddChild(contentLay)
     
@@ -492,7 +579,7 @@ class pageMainView extends ViewBase {
     }
     
     ChartUpdate = () =>{
-        if(pageSettings.getSettingsValue("ShowChart")){            
+        if(pageSettings.getSettingsValue("ShowChart")){
         
             this.meterChart.data.labels = []
             this.meterChart.data.datasets[0].data = []
@@ -678,18 +765,19 @@ class pageMainView extends ViewBase {
     
     UpdateMeterValues = (mtr) => {
         app.SetDebug(false)
-        this.meterValueVoltage.SetText(mtr.Vol)
-        this.meterValueCurrent.SetText(mtr.Cur)
-        this.meterValuePower.SetText(mtr.Pwr)
-        this.meterValueCapacity.SetText(pageSettings.getSettingsValue("Use-kWh") ? (mtr.Cap/1000 || "").toFixed(3) : mtr.Cap || "")
-        this.meterValueEnergy.SetText( pageSettings.getSettingsValue("Use-kWh") ? (mtr.Ene/1000).toFixed(3) : mtr.Ene)
-        this.meterValueDVoltage.SetText(`${mtr.DMin || ""} / ${mtr.DPlus || ""}` || "")
-        this.meterValuePrice.SetText(mtr.Price || "")
-        this.meterValueCost.SetText(mtr.Cost || "")
-        this.meterValueFreq.SetText(mtr.Freq || "")
-        this.meterValuePowFact.SetText(mtr.PowFact || "")
-        this.meterValueTemperature.SetText(`${mtr.Temp} / ${(mtr.Temp*9/5+32).toFixed(0)}`)
-        this.meterValueTime.SetText(`${addZero(mtr.Time.h)}:${addZero(mtr.Time.m)}:${addZero(mtr.Time.s)}`)
+        try { this.meterValueVoltage.SetText(mtr.Vol) } catch { /*pass*/ }
+        try { this.meterValueCurrent.SetText(mtr.Cur) } catch { /*pass*/ }
+        try { this.meterValuePower.SetText(mtr.Pwr) } catch { /*pass*/ }
+        try { this.meterValueCapacity.SetText(pageSettings.getSettingsValue("Use-kWh") ? (mtr.Cap/1000 || 0).toFixed(3) : mtr.Cap || "") } catch { /*pass*/ }
+        try { this.meterValueEnergy.SetText( pageSettings.getSettingsValue("Use-kWh") ? (mtr.Ene/1000 || 0).toFixed(3) : mtr.Ene) } catch { /*pass*/ }
+        try { this.meterValueDVoltage.SetText(`${mtr.DMin || ""} / ${mtr.DPlus || ""}` || "") } catch { /*pass*/ }
+        try { this.meterValuePrice.SetText(mtr.Price || "") } catch { /*pass*/ }
+        try { this.meterValueCost.SetText(mtr.Cost || "") } catch { /*pass*/ }
+        try { this.meterValueFreq.SetText(mtr.Freq || "") } catch { /*pass*/ }
+        try { this.meterValuePowFact.SetText(mtr.PowFact || "") } catch { /*pass*/ }
+        try { this.meterValueTemperature.SetText(`${mtr.Temp} / ${(mtr.Temp*9/5+32).toFixed(0)}`) } catch { /*pass*/ }
+        try { this.meterValueTime.SetText(`${addZero(mtr.Time.h)}:${addZero(mtr.Time.m)}:${addZero(mtr.Time.s)}`) } catch { /*pass*/ }
+
         app.SetDebug("console")
         
         this.ChartUpdate()

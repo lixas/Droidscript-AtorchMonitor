@@ -35,7 +35,7 @@ class pageAboutView  extends ViewBase {
                 app.AddText( contentLay, "DT-24\n\n\n", "", "", "Multiline" )
                 
                 var text2 =app.AddText( contentLay, "Tested only with first one (UD24). \n \
-        Click plug [ [fa-plug] ] icon in main screen and select your device. It may be named UD24, UD18 or something similar. If device is compatible- application should begin showing values on the screen\n \
+        Click plug [ [fa-plug] ] icon in main screen and select your device. It may be named UD24, UD18 or something similar, depending on your device. If device is compatible- application should begin showing values on the screen\n \
         If you have another Atorch device and would like to help me integrate into this application- please contact me via my website.", -1, "", "Left,Multiline,FontAwesome" )
                 text2.SetTextSize("15")
                 

@@ -1,19 +1,4 @@
-//     var displayDefaultMeasurements = [
-//         {"key": "Vol", "title": "Voltage", "checked": true},
-//         {"key": "Cur", "title": "Corrent", "checked": true},
-//         {"key": "Pwr", "title": "Power", "checked": true},
-//         {"key": "Cap", "title": "Capacity", "checked": false},
-//         {"key": "Ene", "title": "Energy", "checked": true},
-//         {"key": "DMinPlus", "title": "Data lines voltage", "checked": false},
-//         {"key": "Price", "title": "Price per kWh", "checked": false},
-//         {"key": "Cost", "title": "Cost", "checked": false},
-//         {"key": "Freq", "title": "Frequency", "checked": false},
-//         {"key": "PowFact", "title": "Power Factor", "checked": false},
-//         {"key": "Temp", "title": "Temperature", "checked": false},
-//         {"key": "Time", "title": "Time", "checked": true}
-//     ]
-    
-//     let arr1 = [
+// let arr1 = [
 //     { id: "abdc4051", date: "2017-01-24" },
 //     { id: "abdc4052", date: "2017-01-22" }
 // ];
@@ -33,6 +18,16 @@
 
 
 class pageSettingsModel extends ModelBase {
+/*
+    Availablle settings:
+    Bool:   SimulateHardware
+    Bool:   ShowChart
+    Int:    ChartDurationIndex
+    Bool:   Use-kWh
+    Array:  Measurements
+    
+    
+*/
     constructor() {
         super()
         this.config = {}
@@ -48,6 +43,48 @@ class pageSettingsModel extends ModelBase {
             app.Alert(msg)
             this.config = {}
             this._saveSettingsFile()
+        }
+        
+        this.ChartDurationList = [
+            ["1 minute",    1*60], 
+            ["5 minutes",   5*60],
+            ["10 Minutes",  10*60],
+            ["30 minutes",  30*60],
+            ["1 hour",      1*60*60],
+            ["2 hours",     2*60*60],
+            ["6 hours",     6*60*60],
+            ["12 hours",    12*60*60],
+            ["24 hours",    24*60*60]
+        ]
+        
+        this.defaultMeasurements = [
+            {"key": "Vol",      "checked": true,    "title": "Voltage"},
+            {"key": "Cur",      "checked": true,    "title": "Current"},
+            {"key": "Pwr",      "checked": true,    "title": "Power"},
+            {"key": "Cap",      "checked": false,   "title": "Capacity"},
+            {"key": "Ene",      "checked": true,    "title": "Energy"},
+            {"key": "DMinPlus", "checked": false,   "title": "Data lines voltage"},
+            {"key": "Price",    "checked": false,   "title": "Price per kWh"},
+            {"key": "Cost",     "checked": false,   "title": "Cost"},
+            {"key": "Freq",     "checked": false,   "title": "Frequency"},
+            {"key": "PowFact",  "checked": false,   "title": "Power Factor"},
+            {"key": "Temp",     "checked": false,   "title": "Temperature"},
+            {"key": "Time",     "checked": true,    "title": "Time"}
+        ]
+        
+        if(this.config.Measurements){
+            const mergeById = (a1, a2) =>
+                a1.map(itm => ({
+                    ...a2.find((item) => (item.key === itm.key) && item),
+                    ...itm
+                }));
+            
+            this.config.Measurements = mergeById(this.config.Measurements, this.defaultMeasurements)
+            this.config.Measurements.sort((a,b) => (a.index > b.index) ? 1 : ((b.index > a.index) ? -1 : 0))
+            // console.log("merge", this.config.Measurements);
+        }
+        else{
+            this.config.Measurements = this.defaultMeasurements
         }
     }
     
@@ -77,17 +114,7 @@ class pageSettingsView  extends ViewBase {
     constructor(){
         super()
         
-        this.ChartDurationList = [
-            ["1 minute",    1*60], 
-            ["5 minutes",   5*60],
-            ["10 Minutes",  10*60],
-            ["30 minutes",  30*60],
-            ["1 hour",      1*60*60],
-            ["2 hours",     2*60*60],
-            ["6 hours",     6*60*60],
-            ["12 hours",    12*60*60],
-            ["24 hours",    24*60*60]
-        ]
+
         
         this.elementsToReset = []
     }
@@ -95,21 +122,17 @@ class pageSettingsView  extends ViewBase {
     createPage = () => {
         this.apb = MUI.CreateAppBar("Settings", "arrow_back", "autorenew");
         this.apb.SetOnMenuTouch( ()=>{ OnBack() })
-        this.apb.SetOnControlTouch(
-            (text, index)=>{
-                if(index == 0){
-                    var dlg = MUI.CreateDialog("Reset settings to defaults?", "", "OKay", "Cancel operation")
-                    dlg.SetOnTouch(
-                        (isOkay, isError) => {
-                            if(isOkay){
-                                this.controller.resetSettings()
-                            }
-                        }
-                    )
-                    dlg.Show()
-                }
+        this.apb.SetOnControlTouch( (text, index)=>{
+            if(index == 0){
+                var dlg = MUI.CreateDialog("Reset settings to defaults?", "", "OKay", "Cancel operation")
+                dlg.SetOnTouch( (isOkay, isError)=>{
+                    if(isOkay){
+                        this.controller.resetSettings()
+                    }
+                })
+                dlg.Show()
             }
-        )
+        })
         
 
         var scr = app.CreateScroller(1, 1, "FillXY,NoScrollBar,ScrollFade")
@@ -122,7 +145,6 @@ class pageSettingsView  extends ViewBase {
         
         // simulate hardware settings
         contentLay.AddChild( this.settingsRowItem(
-            // this.SimulateHardware,
             "[fa-microchip]",
             "Simulate harwdare",
             "If you dont have required hardware but still want to check application, you can use in-app hardware simulator. Still you have to \"connect\"",
@@ -130,7 +152,7 @@ class pageSettingsView  extends ViewBase {
                 "default": false,
                 "preset": this.controller.getConfigValueIfExists("SimulateHardware"), 
                 "cb": (value)=>{ 
-                    this.controller.notifySettingsChange("SimulateHardware", value) 
+                    this.controller.notifySettingsChange("SimulateHardware", value)
                 },
                 "key": "SimulateHardware"
             }
@@ -139,7 +161,7 @@ class pageSettingsView  extends ViewBase {
         
         // chart display and other settings
         var vals=[]
-        this.ChartDurationList.forEach(e=>{vals.push(e[0])})
+        this.controller.ChartDurationList.forEach(e=>{vals.push(e[0])})
         contentLay.AddChild(this.settingsRowItem(
             // this.ShowChart,
             "[fa-line-chart]",
@@ -154,7 +176,7 @@ class pageSettingsView  extends ViewBase {
             {
                 "list": vals.join(","),
                 "default": 0,
-                "preset": this.controller.getConfigValueIfExists("ChartDurationIndex") !== undefined ? this.ChartDurationList[this.controller.getConfigValueIfExists("ChartDurationIndex")][0] : undefined, 
+                "preset": this.controller.getConfigValueIfExists("ChartDurationIndex") !== undefined ? this.controller.ChartDurationList[this.controller.getConfigValueIfExists("ChartDurationIndex")][0] : undefined, 
                 "cb": (value, index)=>{
                     this.controller.notifySettingsChange("ChartDurationIndex", index)
                 },
@@ -178,10 +200,11 @@ class pageSettingsView  extends ViewBase {
         ))
         
         // elements ordder and visibility
+        this.controller.setDefault("Measurements", this.controller.defaultMeasurements)
         contentLay.AddChild(this.settingsRowItem(
             "[fa-list-ol]",
             "Order and visibility",
-            "Select the measurement elements that you would like to see in main page and hide irrelevant",
+            "Select the order of elements that you would like to see and hide irrelevant",
             false,
             false,
             [
@@ -236,14 +259,21 @@ class pageSettingsView  extends ViewBase {
             }
 
             if(spinner){
-                var spn = app.AddSpinner(texts, "", "", "", "FillX,Bold" );
+                var spn = app.AddSpinner(texts, "", "", "", "FillX,Bold");
                 spn.SetTextSize(18)
-                if(spinner.cb) spn.SetOnChange(I(function(v,i){ spinner.cb(v,i) }) )
+                if (spinner.cb) spn.SetOnChange(
+                    I(function(v, i) {
+                        spinner.cb(v, i)
+                }))
                 spn.SetList(spinner.list)
-                spn.SetText( spinner.preset ? spinner.preset : spinner.list.split(",")[spinner.default] )
-                if(spinner.key) this.controller.setDefault(spinner.key, spinner.default)
-                // element.Spinner = spn
-                this.elementsToReset.push( ()=>{spn.SetText(spinner.list.split(",")[spinner.default])})
+                spn.SetText(spinner.preset ? spinner.preset : spinner.list.split(",")[spinner.default])
+                if (spinner.key) this.controller.setDefault(spinner.key, spinner.default)
+                // add to reset sequence
+                this.elementsToReset.push(
+                    () => {
+                        spn.SetText(spinner.list.split(",")[spinner.default])
+                        this.controller.notifySettingsChange(spinner.key, spinner.default)
+                })
             }
             
             if(buttons){
@@ -251,37 +281,42 @@ class pageSettingsView  extends ViewBase {
                 buttons.forEach((button, index) => {
                     var btn = app.AddButton(btnItems, button.name )
                     if(button.cb) btn.SetOnTouch( I(function(v){ button.cb() }) )
-                    // element.Button[index] = btn
                 })
             }
             
-        if(toggle){
-            var tgl = app.CreateCheckBox("")
-            tgl.SetScale(2, 2)
-            tgl.SetChecked(toggle.preset ? toggle.preset : toggle.default)
-            if(toggle.cb) tgl.SetOnTouch( I(function(v){ toggle.cb(v) }) )
-            tgl.SetPadding(0, 0.01)
-            if(toggle.key) this.controller.setDefault(toggle.key, toggle.default)
-            rowItem.AddChild( tgl )
-            this.elementsToReset.push( ()=>{tgl.SetChecked(toggle.default)})
-        }
-        else
-            app.AddText(rowItem, "", 0.1)       // empty space
+            if(toggle){
+                var tgl = app.CreateCheckBox("")
+                tgl.SetScale(2, 2)
+                tgl.SetChecked(toggle.preset ? toggle.preset : toggle.default)
+                if(toggle.cb) tgl.SetOnTouch(
+                    I(function(v) { 
+                        toggle.cb(v)
+                }))
+                tgl.SetPadding(0, 0.01)
+                if(toggle.key) this.controller.setDefault(toggle.key, toggle.default)
+                rowItem.AddChild( tgl )
+                // add to reset sequence
+                this.elementsToReset.push( ()=>{
+                    tgl.SetChecked(toggle.default)
+                    this.controller.notifySettingsChange(toggle.key, toggle.default)
+                })
+            }
+            else
+                app.AddText(rowItem, "", 0.1)       // empty space
         
         return rowItem
     }
     
-    setDefaults = () => {
-        this.elementsToReset.forEach(el=>{el()})
-
-    }
-
 }
 
 class pageSettingsController extends ControllerBase {
     constructor(model, view) {
         super(model, view)
+        // attributes
+        this.view.controller.ChartDurationList = this.model.ChartDurationList
+        this.view.controller.config = this.model.config
         
+        // functions
         this.view.controller.notifySettingsChange = this._notifySettingsChange
         this.view.controller.setDefault = this.model.handleDefaults
         this.view.controller.resetSettings = this.resetSettings
@@ -307,19 +342,49 @@ class pageSettingsController extends ControllerBase {
     }
     
     getChartDuration = () => {
-        return this.view.ChartDurationList[this.getSettingsValue("ChartDurationIndex")][1]
+        return this.model.ChartDurationList[this.getSettingsValue("ChartDurationIndex")][1]
     }
     
     resetSettings = () => {
-        // this.model.config = {}
-        // this.model._saveSettingsFile()
-        this.view.setDefaults()
-        // OnBack()
+        this.view.elementsToReset.forEach(el=>{el()})
+        this.model.config = {}
+        this.model._saveSettingsFile()
         
+        this.model.config.Measurements = this.model.defaultMeasurements
+        // OnBack()
     }
     
     buildOrderAndVisibilityWindow = () => {
-        app.Alert("Settings1")
+        var webZoom = 2.4
+        var modal = UI.CreateModal("Modal title", "", "PROCEED", "CANCEL", false)
+        //Add custom controls to your modal
+        var modalLay = modal.GetLayout()
+        
+        //Create a web control.
+	    var webView = app.CreateWebView( 0.8, 0.2, "AutoZoom", webZoom*100 )
+	    
+	    var html = app.ReadFile('./Html/sort.html') 
+        webView.LoadHtml(html);
+        webView.SetOnProgress((percent)=>{
+            if(percent ==  100){
+                webView.Execute("buildmenu("+JSON.stringify(this.getConfigValueIfExists("Measurements"))+")")
+                webView.Execute("getContentSize()", ulElementHeight => {
+                    webView.SetSize(
+                        720,
+                        Math.min((ulElementHeight+15)*webZoom, app.GetDisplayHeight()*0.8),
+                        "px")
+                })
+            }
+        })
+    	modalLay.AddChild( webView )
+    	modal.SetOnTouch((isOk, btnText)=>{
+            if(isOk){
+                webView.Execute("getSortedList()", value => {
+                    this._notifySettingsChange("Measurements", value)
+                })
+            }
+    	})
+    	modal.Show()
     }
 }
 

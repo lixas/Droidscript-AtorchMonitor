@@ -120,7 +120,7 @@ class MyEventEmitter {
         this._events[name] = this._events[name].filter(filterListeners);
     }
     
-    emit(name, data, ignoreNoExist) {
+    emit(name, data, ignoreNoExist=false) {
         if (!this._events[name]) {
             if(ignoreNoExist)
                 return
