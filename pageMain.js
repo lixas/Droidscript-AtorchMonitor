@@ -3,7 +3,8 @@ app.LoadPlugin( "BluetoothLE" );
 class pageMainModel extends ModelBase {
     constructor() {
         super()
-        this.BufferUart=""     // temporary buffer for UART data
+        this.BufferUart=""      // temporary buffer for UART data
+        this.deviceType = ""    // device ttype according to UART data
         
         // event.on("ChartDurationIndex_Changed", ()=>{
         //     var value = pageSettings.getChartDuration()
@@ -13,17 +14,15 @@ class pageMainModel extends ModelBase {
         this.sim = {}
         this.sim.Active = false
         this.sim.Voltage = 5
-        // this.sim.VoltageChange = 2
         this.sim.Current = 2
-        // this.sim.CurrentChange = 2
         this.sim.Power = 0
         this.sim.Capacity = 0
         this.sim.Energy = 0
         this.sim.Temp = 23
         this.sim.TempChange = 0.1
         this.sim.Time = 0
-        //this.meterHistory = new FixedLenArray(pageSettings.getChartDuration())
-        this.meterHistory = new FixedLenArray(60)
+        this.meterHistory = new FixedLenArray(pageSettings.getChartDuration())
+        // this.meterHistory = new FixedLenArray(60)
         
         this.ble = app.CreateBluetoothLE();
         this.ble.state = false
@@ -48,23 +47,32 @@ class pageMainModel extends ModelBase {
         
     }
     
+    //ble after select connect to device
     _OnBleSelect = (name, address) => {
         this.ble.Connect( address, "UART" );
     };
     
+    //after connected to ble device
     _OnBleConnected = ()=> {
         app.ShowPopup( "Connected!" )
         this.ble.state = true
     }
     
+    //of UART receive- glue to string and pass for processing
     _OnBleUartReceive = (data) => {
         if (data == 'FF' && this.BufferUart.length >=36*2 ) {
-            var deviceType = this.BufferUart.substring(6, 8)
+
+            if( this.deviceType != this.BufferUart.substring(6, 8)){
+                app.Alert("DeviceTypeChanged")
+                this.deviceType = this.BufferUart.substring(6, 8)
+                event.emit("DeviceTypeChanged", this.deviceType)
+            }
+            
             switch(this.BufferUart.substring(4, 6)){
                 case '01':  //Data
-                    var parsed = this._ParseUartData(this.BufferUart, deviceType)
+                    var parsed = this._ParseUartData(this.BufferUart, this.deviceType)
                     this.addItemToChartHistory(parsed)
-                    this.controller.handleProcessedUartData(parsed)
+                    this.controller.displayDataOnScreen(parsed)
                     break;
                 case '11':  //Command
                     app.Alert("command");
@@ -79,6 +87,7 @@ class pageMainModel extends ModelBase {
             this.BufferUart += data
     };
     
+    // send UART command to device
     sendUart = (data) => {
         if(this.ble.state){
             this.ble.SendUart( data )
@@ -87,6 +96,7 @@ class pageMainModel extends ModelBase {
         else return "NotConnected"
     };
     
+    // parse uarsd string, different for USB and Mains type devices
     _ParseUartData = (bfr, deviceType="03") => {
         var meter = [];
         meter.Time      = []
@@ -98,6 +108,10 @@ class pageMainModel extends ModelBase {
             meter.Ene       = parseInt(bfr.substring(26, 34), 16)/100
             meter.DMin      = parseInt(bfr.substring(34, 38), 16)/100
             meter.DPlus     = parseInt(bfr.substring(38, 42), 16)/100
+            meter.Price     = null
+            meter.Cost      = null
+            meter.Freq      = null
+            meter.PowFact   = null
             meter.Temp      = parseInt(bfr.substring(44, 46), 16)
             meter.Time.h    = parseInt(bfr.substring(48, 50), 16)
             meter.Time.m    = parseInt(bfr.substring(50, 52), 16)
@@ -123,16 +137,19 @@ class pageMainModel extends ModelBase {
         return meter
     };
     
+    //stop simulation
     StopSimulator = () =>{
         this.sim.Active = false
     }
     
+    //start simulation
     StartSimulator = () => {
         this.sim.TimeStarted = Date.now()
         this.sim.Active = true
         this._Simulate()
     }
     
+    // simulate values
     _Simulate = () => {
         var StepStarted = performance.now()
         function decimalToHex(d, padding) {
@@ -180,7 +197,7 @@ class pageMainModel extends ModelBase {
 
         var parsed = this._ParseUartData(UART.join(""), "03")
         this.addItemToChartHistory(parsed)
-        this.controller.handleProcessedUartData(parsed)
+        this.controller.displayDataOnScreen(parsed)
         
         if(this.sim.Active)
             setTimeout(this._Simulate, 1000 - (performance.now() - StepStarted))
@@ -209,7 +226,7 @@ class pageMainView extends ViewBase {
         
         var apb = MUI.CreateAppBar("Atorch power monitor", "menu", "power");
         apb.SetOnMenuTouch( ()=>{
-            this.onMenuTouch()
+            app.OpenDrawer( "left" )
         })
         apb.SetOnControlTouch( (text, index)=>{
             this.onControlTouch(text, index)
@@ -295,6 +312,11 @@ class pageMainView extends ViewBase {
                     rst.SetOnTouchUp(()=>{
                         this.controller.SendUartCommand("resetCapacity")
                     })
+                    event.on("DeviceTypeChanged", (devType)=>{
+                        app.Alert(devType);
+                        (devType=="03") ? rst.Show() : rst.Hide()
+                    })
+                    rst.Hide()
                     layCapacity.AddChild( rst )
                     MeasurementsLay.AddChild(layCapacity)
                     this.ItemInMeasurementsLay["Cap"] = layCapacity
@@ -436,11 +458,6 @@ class pageMainView extends ViewBase {
             }) // foreach
             
             event.on("Settings_Measurements_Changed", () => {
-                // console.log("MeasurementsLay", MeasurementsLay)
-                // this.ItemInMeasurementsLay.forEach((itm) => {
-                //     MeasurementsLay.RemoveChild( itm )
-                // })
-                
                 //make array copy and reverse to insert items into front of layout
                 pageSettings.getSettingsValue("Measurements").slice().reverse().forEach((el)=>{
                     MeasurementsLay.RemoveChild( this.ItemInMeasurementsLay[el.key] )
@@ -672,39 +689,28 @@ class pageMainView extends ViewBase {
         
         app.AddDrawer( drawerScroll, "left", drawerWidth )
         
-            var url = "http://ws.bukys.eu/android/update.json";
-            var httpRequest = new XMLHttpRequest(); 
-            httpRequest.onreadystatechange = function() { 
-                if( httpRequest.readyState==4 ) {
-                    //If we got a valid response. 
-                    if( httpRequest.status==200 ) { 
-                        // buildArray(httpRequest.responseText);
-                        console.log("responseText", httpRequest.responseText)
-                        if(parseInt(JSON.parse(httpRequest.responseText).atorch.version) > app.BuildNumber){
-                        
-                                //Add title between menus.
-                                var txtTitle = app.CreateText( "Update is available...",-1,-1,"Left")
-                                txtTitle.SetTextColor( "White" )
-                                txtTitle.SetMargins( 16,12,0,0, "dip" )
-                                txtTitle.SetTextSize( 20, "dip" )
-                                txtTitle.SetOnTouchUp(()=>{
-                                    app.Alert("Perform Update!")
-                                })
-                                layMenu.AddChild( txtTitle )
-                        }
-                    } 
-                    //An error occurred 
-                    else 
-                        console.log( "Error: " + httpRequest.status + httpRequest.responseText);
-                    
-                    app.HideProgress(); 
-                } 
-                
-            };   
-            httpRequest.open("GET", url, true); 
-            httpRequest.send(null);
+        event.on("UpdateIsAvailable", (updateJSON)=>{
+            if(updateJSON != false){
+                var txtTitle = app.CreateText( "Update is available...",-1,-1,"Left")
+                txtTitle.SetTextColor( "White" )
+                txtTitle.SetMargins( 16,12,0,0, "dip" )
+                txtTitle.SetTextSize( 20, "dip" )
+                txtTitle.SetOnTouchUp(()=>{
+                    var dlg = MUI.CreateDialog("Update is available. Version: "+updateJSON.version, updateJSON.changelog, "Procced", "Calcel", true)
+                    dlg.SetOnTouch((okBtn)=>{
+                        if(okBtn)
+                            this.controller.downloadAndInstall(UpdaterRootURL + updateJSON.url)
+                    })
+                    dlg.Show()
+                })
+                layMenu.AddChild( txtTitle )
+            }
+        })
+        this.controller.isUpdateAvailable()
+        
     }
     
+    // iškelt į kontrollerį
     //Handle menu item selection.
     DrawerMenu1Touch = ( title, body, type, index ) => {
         switch(index){
@@ -743,14 +749,11 @@ class pageMainView extends ViewBase {
         
     }
     
+    //iš
     DrawerMenu2Touch = ( title, body, type, index ) => {
         //Close the drawer.
         app.CloseDrawer( "left" )
         app.ShowPopup( title )
-    }
-    
-    onMenuTouch = () => {
-        app.OpenDrawer( "left" )
     }
     
     onControlTouch = (text, index) => {
@@ -762,40 +765,22 @@ class pageMainView extends ViewBase {
                 this.controller.ShowBleDevices()
         }
     }
-    
-    UpdateMeterValues = (mtr) => {
-        app.SetDebug(false)
-        try { this.meterValueVoltage.SetText(mtr.Vol) } catch { /*pass*/ }
-        try { this.meterValueCurrent.SetText(mtr.Cur) } catch { /*pass*/ }
-        try { this.meterValuePower.SetText(mtr.Pwr) } catch { /*pass*/ }
-        try { this.meterValueCapacity.SetText(pageSettings.getSettingsValue("Use-kWh") ? (mtr.Cap/1000 || 0).toFixed(3) : mtr.Cap || "") } catch { /*pass*/ }
-        try { this.meterValueEnergy.SetText( pageSettings.getSettingsValue("Use-kWh") ? (mtr.Ene/1000 || 0).toFixed(3) : mtr.Ene) } catch { /*pass*/ }
-        try { this.meterValueDVoltage.SetText(`${mtr.DMin || ""} / ${mtr.DPlus || ""}` || "") } catch { /*pass*/ }
-        try { this.meterValuePrice.SetText(mtr.Price || "") } catch { /*pass*/ }
-        try { this.meterValueCost.SetText(mtr.Cost || "") } catch { /*pass*/ }
-        try { this.meterValueFreq.SetText(mtr.Freq || "") } catch { /*pass*/ }
-        try { this.meterValuePowFact.SetText(mtr.PowFact || "") } catch { /*pass*/ }
-        try { this.meterValueTemperature.SetText(`${mtr.Temp} / ${(mtr.Temp*9/5+32).toFixed(0)}`) } catch { /*pass*/ }
-        try { this.meterValueTime.SetText(`${addZero(mtr.Time.h)}:${addZero(mtr.Time.m)}:${addZero(mtr.Time.s)}`) } catch { /*pass*/ }
 
-        app.SetDebug("console")
-        
-        this.ChartUpdate()
-        
-    }
 }
 
 class pageMainController extends ControllerBase {
     constructor(model, view) {
         super(model, view)
         
-        this.model.controller.handleProcessedUartData = this.onUartProcessedData
+        this.model.controller.displayDataOnScreen = this.updateDataOnScreen
         
         this.view.controller.ShowBleDevices = this.onShowBleDevices
         this.view.controller.SendUartCommand = this.onSendCommand
         this.view.controller.toggleSimulator = this.toggleSimulator
         this.view.controller.getSimulatorState = this.getSimulatorState
         this.view.controller.getHistoricalData = this.model.getHistoricalData
+        this.view.controller.isUpdateAvailable = this.isUpdateAvailable
+        this.view.controller.downloadAndInstall = this.downloadAndInstall
         
 
         this.view.pageCreate()
@@ -806,8 +791,26 @@ class pageMainController extends ControllerBase {
         // this.model.ble.Connect( "22:02:14:13:53:A9", "UART" );
     };
     
-    onUartProcessedData = (data) => {
-        this.view.UpdateMeterValues(data)
+    updateDataOnScreen = (mtr) => {
+        app.SetDebug(false)
+        try { this.view.meterValueVoltage.SetText(mtr.Vol) } catch { /*pass*/ }
+        try { this.view.meterValueCurrent.SetText(mtr.Cur) } catch { /*pass*/ }
+        try { this.view.meterValuePower.SetText(mtr.Pwr) } catch { /*pass*/ }
+        try { this.view.meterValueCapacity.SetText(pageSettings.getSettingsValue("Use-kWh") ? (mtr.Cap/1000 || 0).toFixed(3) : mtr.Cap || "") } catch { /*pass*/ }
+        try { this.view.meterValueEnergy.SetText( pageSettings.getSettingsValue("Use-kWh") ? (mtr.Ene/1000 || 0).toFixed(3) : mtr.Ene) } catch { /*pass*/ }
+        try { this.view.meterValueDVoltage.SetText(`${mtr.DMin || ""} / ${mtr.DPlus || ""}` || "") } catch { /*pass*/ }
+        try { this.view.meterValuePrice.SetText(mtr.Price || "") } catch { /*pass*/ }
+        try { this.view.meterValueCost.SetText(mtr.Cost || "") } catch { /*pass*/ }
+        try { this.view.meterValueFreq.SetText(mtr.Freq || "") } catch { /*pass*/ }
+        try { this.view.meterValuePowFact.SetText(mtr.PowFact || "") } catch { /*pass*/ }
+        try { this.view.meterValueTemperature.SetText(`${mtr.Temp} / ${(mtr.Temp*9/5+32).toFixed(0)}`) } catch { /*pass*/ }
+        try { this.view.meterValueTime.SetText(`${addZero(mtr.Time.h)}:${addZero(mtr.Time.m)}:${addZero(mtr.Time.s)}`) } catch { /*pass*/ }
+
+        app.SetDebug("console")
+        
+        this.view.ChartUpdate()
+        
+    
     };
     
     onSendCommand = (cmd) => {
@@ -821,6 +824,7 @@ class pageMainController extends ControllerBase {
                 }
                 hex = "FF,55,11,03,02,00,00,00,00,52"
                 break
+
             case "resetEnergy": // energy
                 if(this.getSimulatorState()){
                     this.model.sim.Energy = 0
@@ -828,6 +832,7 @@ class pageMainController extends ControllerBase {
                 }
                 hex = "FF,55,11,03,01,00,00,00,00,51"
                 break
+
             case "resetTime": // Time
                 if(this.getSimulatorState()){
                     this.model.sim.TimeStarted = Date.now()
@@ -835,19 +840,24 @@ class pageMainController extends ControllerBase {
                 }
                 hex = "FF,55,11,03,03,00,00,00,00,53"
                 break
+
             case "resetAll": // All (does not work)
                 hex = "FF,55,11,03,05,00,00,00,00,5D"
                 break
+
             // buttons on main screen
             case "btnSetup":
                 hex = "FF,55,11,03,31,00,00,00,00,01"
                 break
+
             case "btnMinus":
                 hex = "FF,55,11,03,34,00,00,00,00,0C"
                 break
+
             case "btnPlus":
                 hex = "FF,55,11,03,33,00,00,00,00,03"
                 break
+
             case "btnEnter":
                 hex = "FF,55,11,03,32,00,00,00,00,02"
                 break
@@ -871,6 +881,49 @@ class pageMainController extends ControllerBase {
 
     getSimulatorState = () => {
         return this.model.sim.Active
+    };
+    
+    isUpdateAvailable = () => {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", UpdaterRootURL+"update.json", true);
+        xhr.ontimeout = () => {
+            console.error("The request for update timed out.");
+        };
+        xhr.onload = e => {
+            if (xhr.status == 200){
+                // dont fail if JSON arse fails
+                try { JSON.parse(xhr.responseText) } catch { return }
+                if( parseFloat(JSON.parse(xhr.responseText).atorch.version) > parseFloat(app.GetVersion())  ){
+                    event.emit("UpdateIsAvailable", JSON.parse(xhr.responseText).atorch, true)
+                    return
+                }
+                else {
+                    return
+                }
+            }
+            else 
+                console.error( "Error: " + httpRequest.status + httpRequest.responseText);
+        };
+        xhr.timeout = 5000;
+        xhr.send();
+        
+    };
+    
+    downloadAndInstall = (srcPath) => {
+        var targetDir = app.GetPrivateFolder( "downloads" )
+        var installSource = targetDir + "/recent.apk"
+        
+        // delete file if exists before downloading
+        if(app.FileExists(installSource)) {
+            app.DeleteFile(installSource)
+        }
+        
+        // download and install
+        var down = app.CreateDownloader();
+        down.SetOnComplete( () =>{
+            //app.InstallApp( installSource, ()=>{app.Alert("Install finished")})
+        } );
+        down.Download( srcPath, targetDir, "recent.apk" );
     };
 }
 

@@ -10,8 +10,9 @@ app.LoadScript("pageAbout.js")
 cfg.Dark
 cfg.MUI
 
+UpdaterRootURL = "http://ws.bukys.eu/android/";
+
 NavigationHistory = []
-app.BuildNumber = 20221025
 
 function OnStart() {    
     event = new MyEventEmitter();

@@ -1,22 +1,3 @@
-// let arr1 = [
-//     { id: "abdc4051", date: "2017-01-24" },
-//     { id: "abdc4052", date: "2017-01-22" }
-// ];
-
-// let arr2 = [
-//     { id: "abdc4051", name: "ab" },
-//     { id: "abdc4052", name: "abc" }
-// ];
-
-// const mergeById = (a1, a2) =>
-//     a1.map(itm => ({
-//         ...a2.find((item) => (item.id === itm.id) && item),
-//         ...itm
-//     }));
-
-// console.log(mergeById(arr1, arr2));
-
-
 class pageSettingsModel extends ModelBase {
 /*
     Availablle settings:
@@ -113,9 +94,6 @@ class pageSettingsModel extends ModelBase {
 class pageSettingsView  extends ViewBase {
     constructor(){
         super()
-        
-
-        
         this.elementsToReset = []
     }
     
@@ -163,7 +141,6 @@ class pageSettingsView  extends ViewBase {
         var vals=[]
         this.controller.ChartDurationList.forEach(e=>{vals.push(e[0])})
         contentLay.AddChild(this.settingsRowItem(
-            // this.ShowChart,
             "[fa-line-chart]",
             "Show chart",
             "Show line chart on main screen for historical data, while you are connected to device. Choose how much data you wish to see. NOTE: historical data is not saved on device",
@@ -187,7 +164,6 @@ class pageSettingsView  extends ViewBase {
         
         // energy units: kWh or Wh
         contentLay.AddChild(this.settingsRowItem(
-            // this.Units,
             "[fa-balance-scale]",
             "??Higher measurement units",
             "Energy units: use kilo-Watt-hours insted of watt-hours, and amper-hours instead on mili-amper-hours if checked",
@@ -363,7 +339,7 @@ class pageSettingsController extends ControllerBase {
         //Create a web control.
 	    var webView = app.CreateWebView( 0.8, 0.2, "AutoZoom", webZoom*100 )
 	    
-	    var html = app.ReadFile('./Html/sort.html') 
+	    var html = app.ReadFile(app.GetAppPath() +'/Html/sort.html') 
         webView.LoadHtml(html);
         webView.SetOnProgress((percent)=>{
             if(percent ==  100){

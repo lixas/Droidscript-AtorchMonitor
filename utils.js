@@ -254,7 +254,7 @@ function ChartJS(data, type, width, height, options) {
     //     plugDir = app.GetPrivateFolder("Plugins")+"/chartjs"
     // else
         // plugDir = app.GetAppPath()
-    plugDir = "."
+    plugDir = app.GetAppPath() 
     
     var html = app.ReadFile(plugDir+'/Html/chartjs-webview.html')
     html = html.replace('@CHARTJS_SOURCE@', plugDir+'/Html/chartjs.min-2.9.4.js')
