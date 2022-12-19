@@ -165,7 +165,7 @@ class pageSettingsView  extends ViewBase {
         // energy units: kWh or Wh
         contentLay.AddChild(this.settingsRowItem(
             "[fa-balance-scale]",
-            "??Higher measurement units",
+            "Higher measurement units",
             "Energy units: use kilo-Watt-hours insted of watt-hours, and amper-hours instead on mili-amper-hours if checked",
             {
                 "default": false,
@@ -180,11 +180,11 @@ class pageSettingsView  extends ViewBase {
         contentLay.AddChild(this.settingsRowItem(
             "[fa-list-ol]",
             "Order and visibility",
-            "Select the order of elements that you would like to see and hide irrelevant",
+            "Select the order of elements that you would like to see or hide irrelevant ones for you dash Select the order of elements that you would like to see or hide irrelevant ones for you dash",
             false,
             false,
             [
-                {"name": "Button 1", "cb": ()=>{
+                {"name": "Reorder", "cb": ()=>{
                     this.controller.buildOrderAndVisibilityWindow()
                 }}
             ]
@@ -277,8 +277,13 @@ class pageSettingsView  extends ViewBase {
                     this.controller.notifySettingsChange(toggle.key, toggle.default)
                 })
             }
-            else
-                app.AddText(rowItem, "", 0.1)       // empty space
+            else {
+                var tgl = app.CreateCheckBox("")
+                tgl.SetScale(2, 2)
+                tgl.SetPadding(0, 0.01)
+                tgl.Gone()
+                rowItem.AddChild( tgl )
+            }
         
         return rowItem
     }
@@ -337,7 +342,7 @@ class pageSettingsController extends ControllerBase {
         var modalLay = modal.GetLayout()
         
         //Create a web control.
-	    var webView = app.CreateWebView( 0.8, 0.2, "AutoZoom", webZoom*100 )
+	    var webView = app.CreateWebView( 0.7, 0.2, "AutoZoom", webZoom*100 )
 	    
 	    var html = app.ReadFile(app.GetAppPath() +'/Html/sort.html') 
         webView.LoadHtml(html);
@@ -347,7 +352,7 @@ class pageSettingsController extends ControllerBase {
                 webView.Execute("getContentSize()", ulElementHeight => {
                     webView.SetSize(
                         720,
-                        Math.min((ulElementHeight+15)*webZoom, app.GetDisplayHeight()*0.8),
+                        Math.min((ulElementHeight+15)*webZoom, app.GetDisplayHeight()*0.7),
                         "px")
                 })
             }

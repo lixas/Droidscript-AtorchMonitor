@@ -753,7 +753,17 @@ class pageMainView extends ViewBase {
     DrawerMenu2Touch = ( title, body, type, index ) => {
         //Close the drawer.
         app.CloseDrawer( "left" )
-        app.ShowPopup( title )
+        switch(index){
+            case 0:    //About me
+                app.OpenUrl( "http://bukys.eu/me/start" );
+                break;
+            case 1:    // Website
+                app.OpenUrl( "http://bukys.eu" );
+                break;
+            default:
+                app.ShowPopup( title )
+        
+        }
     }
     
     onControlTouch = (text, index) => {
@@ -893,8 +903,8 @@ class pageMainController extends ControllerBase {
             if (xhr.status == 200){
                 // dont fail if JSON arse fails
                 try { JSON.parse(xhr.responseText) } catch { return }
-                if( parseFloat(JSON.parse(xhr.responseText).atorch.version) > parseFloat(app.GetVersion())  ){
-                    event.emit("UpdateIsAvailable", JSON.parse(xhr.responseText).atorch, true)
+                if( parseFloat(JSON.parse(xhr.responseText).powermon.version) > parseFloat(app.GetVersion())  ){
+                    event.emit("UpdateIsAvailable", JSON.parse(xhr.responseText).powermon, true)
                     return
                 }
                 else {
@@ -921,7 +931,7 @@ class pageMainController extends ControllerBase {
         // download and install
         var down = app.CreateDownloader();
         down.SetOnComplete( () =>{
-            //app.InstallApp( installSource, ()=>{app.Alert("Install finished")})
+            app.InstallApp( installSource, ()=>{app.Alert("Install finished")})
         } );
         down.Download( srcPath, targetDir, "recent.apk" );
     };
