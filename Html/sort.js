@@ -71,7 +71,7 @@ function buildmenu(mnu){
 	if(mnu){
 		for (let i = 0; i < mnu.length; i++) {
 			var isChecked = (mnu[i].checked) ? 'checked' : ''
-			par.innerHTML += "<li draggable=\"true\" data-identity=\""+ mnu[i].key +"\"><input data-title=\""+ mnu[i].title +"\" type=\"checkbox\" "+ isChecked +">"+ mnu[i].title +"</li>"
+			par.innerHTML += "<li draggable=\"true\" data-identity=\""+ mnu[i].key +"\"><input data-title=\"Pav:" + i + mnu[i].title +"\" type=\"checkbox\" "+ isChecked +">"+ mnu[i].title +"</li>"
 		}
 	}
     return "buildmenu finished"

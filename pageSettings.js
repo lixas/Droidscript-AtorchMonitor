@@ -67,6 +67,7 @@ class pageSettingsModel extends ModelBase {
         else{
             this.config.Measurements = this.defaultMeasurements
         }
+        // app.Alert(dump2(this.config))
     }
     
     _saveSettingsFile = () =>{

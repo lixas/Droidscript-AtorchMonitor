@@ -60,6 +60,7 @@ class pageMainModel extends ModelBase {
     
     //of UART receive- glue to string and pass for processing
     _OnBleUartReceive = (data) => {
+        data=eval(data)
         if (data == 'FF' && this.BufferUart.length >=36*2 ) {
 
             if( this.deviceType != this.BufferUart.substring(6, 8)){
@@ -313,7 +314,7 @@ class pageMainView extends ViewBase {
                         this.controller.SendUartCommand("resetCapacity")
                     })
                     event.on("DeviceTypeChanged", (devType)=>{
-                        app.Alert(devType);
+                        // app.Alert(devType);
                         (devType=="03") ? rst.Show() : rst.Hide()
                     })
                     rst.Hide()

@@ -1,0 +1,6 @@
+{
+"manifest": {
+    "minSdkVersion": 24,
+    "targetSdkVersion": 30
+    }
+}
