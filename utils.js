@@ -218,10 +218,10 @@ function addZero(dgt) {
 var _chart_is_debug = false
 
 app.LoadChartJS = function(path) {
-    this.version = 1.07
-    this.GetVersion = function() {
-        return this.version
-    }
+    // this.version = 1.07
+    // this.GetVersion = function() {
+    //     return this.version
+    // }
     this.CreateChart = function(data, type, width, height, options) {
         return new ChartJS(data, type, width, height, options)
     }

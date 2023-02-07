@@ -895,6 +895,7 @@ class pageMainController extends ControllerBase {
     };
     
     isUpdateAvailable = () => {
+        console.log("Tikrinamas atnaujinimas")
         var xhr = new XMLHttpRequest();
         xhr.open("GET", UpdaterRootURL+"update.json", true);
         xhr.ontimeout = () => {
@@ -904,6 +905,8 @@ class pageMainController extends ControllerBase {
             if (xhr.status == 200){
                 // dont fail if JSON arse fails
                 try { JSON.parse(xhr.responseText) } catch { return }
+                    console.log("Programos Versija"+ parseFloat(app.GetVersion() ))
+                    console.log("Atnaujinimo versija"+ parseFloat(JSON.parse(xhr.responseText).powermon.version))
                 if( parseFloat(JSON.parse(xhr.responseText).powermon.version) > parseFloat(app.GetVersion())  ){
                     event.emit("UpdateIsAvailable", JSON.parse(xhr.responseText).powermon, true)
                     return

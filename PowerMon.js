@@ -11,6 +11,7 @@ cfg.Dark
 cfg.MUI
 
 UpdaterRootURL = "http://ws.bukys.eu/android/";
+PowerMonRelease = 0.2
 
 NavigationHistory = []
 
